@@ -5,12 +5,20 @@ use std::{
     time::SystemTime,
 };
 
+use uuid::Uuid;
+
 pub type Hash = [u8; 32];
 
 pub type Addr = String;
 
 // required prefix zero bytes
 pub const POW_DIFFICULTY: usize = 2;
+
+// wooden nickels received as mining reward
+pub const MINE_REWARD: u64 = 10;
+
+// the "sender" for mining rewards
+pub const NAME_OF_GOD: &str = "GOD";
 
 pub const GENESIS: Block = Block {
     id: 0,
@@ -88,10 +96,29 @@ impl Blockchain {
         }
         proof
     }
+}
+
+pub struct Node {
+    pub id: Uuid,
+    pub chain: Blockchain,
+}
+
+impl Node {
+    pub fn new() -> Node {
+        Node {
+            id: Uuid::new_v4(),
+            chain: Blockchain::new(),
+        }
+    }
 
     pub fn mine(&mut self) -> &Block {
-        let proof = self.proof_of_work();
-        self.new_block(proof)
+        let proof = self.chain.proof_of_work();
+        self.chain.new_tx(Tx {
+            from: NAME_OF_GOD.to_string(),
+            to: self.id.to_string(),
+            amount: MINE_REWARD,
+        });
+        self.chain.new_block(proof)
     }
 }
 
@@ -108,29 +135,29 @@ pub fn valid_proof(last_proof: u64, last_hash: &Hash, proof: u64) -> bool {
 }
 
 fn main() {
-    let mut chain = Blockchain::new();
+    let mut node = Node::new();
 
-    chain.new_tx(Tx {
+    node.chain.new_tx(Tx {
         from: "joe".to_string(),
         to: "sally".to_string(),
         amount: 100,
     });
 
-    chain.new_tx(Tx {
+    node.chain.new_tx(Tx {
         from: "sally".to_string(),
         to: "mallory".to_string(),
         amount: 50,
     });
 
-    let block = chain.mine();
+    let block = node.mine();
     dbg!(block);
 
-    chain.new_tx(Tx {
+    node.chain.new_tx(Tx {
         from: "bob".to_string(),
         to: "jimmy".to_string(),
         amount: 1,
     });
 
-    let block = chain.mine();
+    let block = node.mine();
     dbg!(block);
 }
